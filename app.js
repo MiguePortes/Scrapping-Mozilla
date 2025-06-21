@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const { Parser } = require("json2csv");
 const XLSX = require("xlsx");
+const PDFDocument = require("pdfkit");
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -106,6 +107,40 @@ const XLSX = require("xlsx");
     XLSX.utils.book_append_sheet(workbook, worksheet, "Artículos");
     XLSX.writeFile(workbook, "articulos-mozilla.xlsx");
     console.log(`✅ Archivo XLSX guardado`);
+
+    const doc = new PDFDocument();
+    doc.pipe(fs.createWriteStream("articulos-mozilla.pdf"));
+
+    doc.fontSize(18).text("Artículos Mozilla Hacks", { align: "center" });
+    doc.moveDown();
+
+    allArticles.forEach((articulo, idx) => {
+      doc
+        .fontSize(14)
+        .text(`${idx + 1}. ${articulo.title}`, { underline: true });
+      doc.fontSize(10).text(`Autor: ${articulo.autor}`);
+      doc.text(`Fecha: ${articulo.date}`);
+      doc.text(`Resumen: ${articulo.resumen}`);
+      doc.text(`Primer párrafo: ${articulo.parrafo}`);
+      doc.text(`URL: ${articulo.url}`);
+      doc.moveDown();
+    });
+
+    doc.end();
+    console.log(`✅ Archivo PDF guardado`);
+
+    let txtContent = "Artículos Mozilla Hacks\n\n";
+    allArticles.forEach((articulo, idx) => {
+      txtContent += `${idx + 1}. ${articulo.title}\n`;
+      txtContent += `Autor: ${articulo.autor}\n`;
+      txtContent += `Fecha: ${articulo.date}\n`;
+      txtContent += `Resumen: ${articulo.resumen}\n`;
+      txtContent += `Primer párrafo: ${articulo.parrafo}\n`;
+      txtContent += `URL: ${articulo.url}\n`;
+      txtContent += `\n-----------------------------\n\n`;
+    });
+    fs.writeFileSync("articulos.txt", txtContent, "utf-8");
+    console.log(`✅ Archivo TXT guardado`);
 
     console.log(
       `\n📁 ¡Guardado exitoso! ${allArticles.length} artículos extraídos`
